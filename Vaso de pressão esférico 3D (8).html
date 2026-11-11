@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vaso de pressão esférico 3D</title>
+<style>
+:root{--bg:#e9edf0;--panel:#ffffffe6;--ink:#16222b;--mute:#566670;--line:#c3ccd2;--acc:#0b6e8a;--accink:#fff;--bad:#c62f1f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10181d;--panel:#18242bee;--ink:#e6eef2;--mute:#93a5af;--line:#2d3d46;--acc:#4cc2e0;--accink:#06222b;--bad:#ff7a66}}
+:root[data-theme="dark"]{--bg:#10181d;--panel:#18242bee;--ink:#e6eef2;--mute:#93a5af;--line:#2d3d46;--acc:#4cc2e0;--accink:#06222b;--bad:#ff7a66}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,sans-serif;overflow:hidden}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.ui{position:fixed;left:12px;right:12px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
+.top{top:calc(56px + env(safe-area-inset-top,0px));justify-content:space-between;align-items:flex-start;max-height:calc(100% - 140px);overflow-y:auto}
+#pt{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:12px;z-index:5}
+#ic{float:right;padding:2px 8px;margin:0 0 4px 8px}
+.bot{bottom:calc(12px + env(safe-area-inset-bottom,0px));align-items:flex-end}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;backdrop-filter:blur(6px);pointer-events:auto;max-width:290px;box-sizing:border-box}
+h1{font-size:16px;margin:0 0 4px;font-weight:650}
+dl{margin:6px 0 0;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:12.5px}
+dt{color:var(--mute)}dd{margin:0;text-align:right}
+p{margin:0;font-size:12px;color:var(--mute)}
+label{display:flex;justify-content:space-between;font-size:13px;margin:6px 0 2px}
+input[type=range]{width:100%;accent-color:var(--acc)}
+#alert{font-size:12px;font-weight:600;color:var(--bad);min-height:16px}
+button{font:inherit;font-size:13px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;pointer-events:auto}
+button[aria-pressed="true"]{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+select{width:100%;font:inherit;font-size:13px;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.ch{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;font-weight:600;margin-bottom:6px}
+.ca{padding:1px 9px;font-size:12px}
+.card.shut>:not(.ch){display:none}
+.card.shut .ch{margin-bottom:0}
+#wbar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:8px 0}
+#wbar i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+#info{display:none}#info b{font-size:14px}#info p{margin-top:4px;color:var(--ink)}
+#tags,#tags2{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.tag.dim{border-color:#f0b429;cursor:default}
+.tag{position:absolute;transform:translate(-50%,-150%);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:2px 7px;font-size:11.5px;white-space:nowrap;pointer-events:auto;cursor:pointer}
+.tag::after{content:"";position:absolute;left:50%;bottom:-8px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--acc)}
+@media(max-width:640px){.card{max-width:none;flex:1 1 100%}.tag{font-size:10.5px;padding:1px 5px}#info{max-height:26vh;overflow:auto;font-size:12.5px}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Modelo 3D de um vaso de pressão esférico"></canvas>
+<div id="tags"></div>
+<button id="pt" aria-expanded="true" aria-label="Abrir ou fechar o painel">▲ Fechar painel</button>
+<div class="ui top" id="topUi">
+  <div class="card">
+    <h1>Vaso de pressão esférico</h1>
+    <p>Arraste para girar. Toque ou clique em uma peça para ver detalhes.</p>
+    <dl><dt>Diâmetro</dt><dd>6,0 m</dd><dt>Espessura padrão</dt><dd>40 mm</dd><dt>Pressão padrão</dt><dd>1,70 MPa</dd></dl>
+    <p style="margin-top:6px">Modelo ilustrativo, sem valor de projeto.</p>
+  </div>
+  <div class="card">
+    <label for="pr"><span>Pressão interna</span><b id="prv">0,90 MPa</b></label>
+    <input id="pr" type="range" min="0" max="2" step="0.05" value="0.9">
+    <div id="alert"></div>
+    <label for="lv"><span>Nível de líquido</span><b id="lvv">0%</b></label>
+    <input id="lv" type="range" min="0" max="100" step="1" value="0">
+    <p id="vol"></p>
+    <div class="row"><button id="bDim" aria-pressed="false">Cotas</button><button id="bCmp" aria-pressed="false">Comparar cilindro</button><button id="bTr" aria-pressed="false">Transparente</button><button id="bAuto" aria-pressed="true">Alívio automático</button><button id="bTest">Simular sobrepressão</button></div>
+    <label for="ex"><span>Vista explodida</span><b id="exv">0%</b></label>
+    <input id="ex" type="range" min="0" max="100" step="1" value="0">
+    <div class="row">
+      <button data-cam="0">Geral</button><button data-cam="1">Topo</button>
+      <button data-cam="2">Colunas</button><button data-cam="3">Manômetro</button><button data-cam="4">Válvula</button>
+    </div>
+  </div>
+</div>
+<div class="ui bot">
+  <div class="card" id="info"><button id="ic" aria-label="Fechar detalhes">✕</button><b id="in"></b><p id="id"></p></div>
+  <button id="bTag" aria-pressed="true">Legendas</button>
+  <button id="bRot" aria-pressed="true">Girar sozinho</button>
+  <button id="bCut" aria-pressed="false">Corte interno</button>
+  <button id="bWire" aria-pressed="false">Malha</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const V=(x,y,z)=>new THREE.Vector3(x,y,z),$=id=>document.getElementById(id);
+const canvas=$('c'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.localClippingEnabled=true;
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(42,1,0.1,200);
+camera.position.set(11,6,11);
+const controls=new THREE.OrbitControls(camera,canvas);
+controls.target.set(0,4.4,0);controls.enableDamping=true;controls.autoRotate=true;controls.autoRotateSpeed=1.2;
+controls.maxPolarAngle=Math.PI*0.52;controls.minDistance=2;controls.maxDistance=30;
+scene.add(new THREE.HemisphereLight(0xffffff,0x44525a,0.9));
+const sun=new THREE.DirectionalLight(0xffffff,0.9);sun.position.set(8,14,6);scene.add(sun);
+const fill=new THREE.DirectionalLight(0x9ec9d8,0.4);fill.position.set(-8,4,-8);scene.add(fill);
+
+const R=3,legH=2.4,cy=R+legH,LIM=1.7;
+const clip=new THREE.Plane(V(0,0,-1),100),cp=[clip];
+const M=(c,m,r,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,metalness:m,roughness:r,clippingPlanes:cp},o));
+const steel=M(0xb9c4cb,.45,.38,{side:THREE.DoubleSide}),inner=M(0x6d7f8a,.3,.7,{side:THREE.BackSide});
+const dark=M(0x4a5a64,.5,.5),accent=M(0xd9a21b,.2,.5),red=M(0xc2412d,.3,.45),pipeM=M(0x8f9ca4,.6,.35);
+const vessel=new THREE.Group();scene.add(vessel);
+const parts={};
+function reg(id,name,info,g,ex){g.traverse(o=>{if(o.isMesh)o.userData.part=id});
+  parts[id]={name,info,g,ex:ex||V(0,0,0),base:g.position.clone()};vessel.add(g);return g}
+function between(a,b,r,mat){const d=b.clone().sub(a),m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,d.length(),10),mat);
+  m.position.copy(a).addScaledVector(d,.5);m.quaternion.setFromUnitVectors(V(0,1,0),d.normalize());return m}
+
+// casca, forro e soldas (equatorial + 8 meridianos)
+const shellG=new THREE.Group();
+const shell=new THREE.Mesh(new THREE.SphereGeometry(R,96,64),steel);shell.position.y=cy;
+const liner=new THREE.Mesh(new THREE.SphereGeometry(R-.08,48,32),inner);liner.position.y=cy;
+shellG.add(shell,liner);
+const weld=(rot)=>{const w=new THREE.Mesh(new THREE.TorusGeometry(R+.012,.04,8,120),dark);w.position.y=cy;rot(w);shellG.add(w)};
+weld(w=>w.rotation.x=Math.PI/2);
+for(let k=0;k<4;k++)weld(w=>w.rotation.y=k*Math.PI/4);
+const plate=new THREE.Mesh(new THREE.BoxGeometry(.5,.02,.3),accent);plate.position.set(R*.9,cy-.9,R*.3);
+plate.lookAt(V(plate.position.x*3,cy-.9,plate.position.z*3));shellG.add(plate); // placa de identificação
+reg('casca','Casca esférica','Duas calotas e zonas de chapa soldadas. A esfera distribui a tensão igualmente em todas as direções, por isso usa menos material que um cilindro para a mesma pressão.',shellG);
+
+// colunas e contraventamento
+const sup=new THREE.Group(),n=8,lat=-.38,tops=[];
+for(let i=0;i<n;i++){const a=i/n*Math.PI*2+Math.PI/n,x=R*Math.cos(lat)*Math.cos(a),z=R*Math.cos(lat)*Math.sin(a),yt=cy+R*Math.sin(lat);
+  sup.add(between(V(x,.05,z),V(x,yt,z),.12,dark));
+  const b=new THREE.Mesh(new THREE.BoxGeometry(.6,.1,.6),dark);b.position.set(x,.05,z);sup.add(b);
+  for(let j=0;j<4;j++){const bt=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.14,8),pipeM);bt.position.set(x+(j%2?.2:-.2),.15,z+(j<2?.2:-.2));sup.add(bt)}
+  tops.push([x,z]);}
+for(let i=0;i<n;i++){const [x1,z1]=tops[i],[x2,z2]=tops[(i+1)%n];
+  sup.add(between(V(x1,.7,z1),V(x2,legH*.95,z2),.035,accent),between(V(x2,.7,z2),V(x1,legH*.95,z1),.035,accent));
+  sup.add(between(V(x1,legH*.55,z1),V(x2,legH*.55,z2),.04,accent))}
+reg('colunas','Colunas de apoio','8 colunas tangentes abaixo do equador, com chapas de base chumbadas e tirantes em X que resistem ao vento e a sismos.',sup,V(0,-1.1,0));
+
+// bocais com flanges parafusadas
+function nozzle(id,name,info,dir,rad,len,fl,extra){
+  const g=new THREE.Group(),dv=dir.clone().normalize();
+  const p=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad,len,32),steel);p.position.y=R+len/2-.1;
+  const f=new THREE.Mesh(new THREE.CylinderGeometry(fl,fl,.1,40),dark);f.position.y=R+len-.05;
+  const r2=new THREE.Mesh(new THREE.CylinderGeometry(rad*1.25,rad*1.25,.1,32),dark);r2.position.y=R*0+R-.05; // reforço na casca
+  g.add(p,f,r2);
+  const nb=Math.max(8,Math.round(fl*24));
+  for(let i=0;i<nb;i++){const a=i/nb*Math.PI*2,b=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.1,8),pipeM);
+    b.position.set(Math.cos(a)*fl*.82,R+len+.04,Math.sin(a)*fl*.82);g.add(b)}
+  if(extra)extra(g,len);
+  g.quaternion.setFromUnitVectors(V(0,1,0),dv);g.position.y=cy;
+  return reg(id,name,info,g,dv.multiplyScalar(2.2));
+}
+nozzle('visita','Boca de visita','DN 500. Permite a entrada de inspetores para manutenção, limpeza e ensaios.',V(0,1,0),.5,.7,.68,(g,len)=>{
+  const c=new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.08,40),steel);c.position.y=R+len+.04;g.add(c);
+  const h=new THREE.Mesh(new THREE.TorusGeometry(.18,.035,8,24,Math.PI),accent);h.position.y=R+len+.08;h.rotation.z=0;g.add(h)});
+nozzle('saida','Saída inferior','Dreno e saída do produto no ponto mais baixo, para esvaziar o vaso por completo.',V(0,-1,0),.28,.6,.42);
+nozzle('entrada','Bocal de entrada','Entrada do fluido de processo, com redução de diâmetro antes da flange.',V(1,.9,.3),.22,.55,.34,(g,len)=>{
+  const c=new THREE.Mesh(new THREE.CylinderGeometry(.14,.22,.4,24),pipeM);c.position.y=R+len+.25;g.add(c)});
+nozzle('valvula','Válvula de segurança','Abre automaticamente se a pressão passar do limite de projeto e alivia o excesso.',V(-.8,.8,-.7),.17,.5,.27,(g,len)=>{
+  const b=new THREE.Mesh(new THREE.CylinderGeometry(.2,.13,.55,24),red);b.position.y=R+len+.32;g.add(b);
+  const v=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.5,12),pipeM);v.position.y=R+len+.8;g.add(v)});
+
+// manômetro
+let needle;
+const dc=document.createElement('canvas');dc.width=dc.height=256;
+(function(){const x=dc.getContext('2d'),c=128;x.fillStyle='#f4f6f7';x.fillRect(0,0,256,256);x.translate(c,c);
+  const ang=t=>(-135+270*t)*Math.PI/180-Math.PI/2;
+  x.strokeStyle='#c62f1f';x.lineWidth=10;x.beginPath();x.arc(0,0,98,ang(LIM/2),ang(1));x.stroke();
+  x.strokeStyle='#222';x.fillStyle='#222';x.font='bold 22px sans-serif';x.textAlign='center';x.textBaseline='middle';
+  for(let i=0;i<=8;i++){const t=i/8,a=ang(t);x.lineWidth=i%2?2:4;x.beginPath();x.moveTo(Math.cos(a)*84,Math.sin(a)*84);x.lineTo(Math.cos(a)*(i%2?92:100),Math.sin(a)*(i%2?92:100));x.stroke();
+    if(i%2==0)x.fillText((t*2).toFixed(0),Math.cos(a)*64,Math.sin(a)*64)}
+  x.font='16px sans-serif';x.fillText('MPa',0,38)})();
+nozzle('manometro','Manômetro','Mostra a pressão interna em MPa. A faixa vermelha marca acima da pressão de projeto. Mexa no controle de pressão para ver o ponteiro.',V(-.45,.85,.6),.06,.45,.1,(g,len)=>{
+  const fg=new THREE.Group();fg.position.y=R+len+.06;
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.1,40),dark);fg.add(body);
+  const face=new THREE.Mesh(new THREE.CircleGeometry(.22,40),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(dc)}));
+  face.rotation.x=-Math.PI/2;face.position.y=.055;fg.add(face);
+  needle=new THREE.Group();needle.position.y=.07;const nd=new THREE.Mesh(new THREE.BoxGeometry(.015,.01,.19),red);nd.position.z=-.08;needle.add(nd);fg.add(needle);g.add(fg)});
+
+// escada com guarda-corpo
+const lad=new THREE.Group(),LZ=R+1.1,topY=cy+.4;
+for(const s of[-.22,.22])lad.add(between(V(s,0,LZ),V(s,topY,LZ),.03,accent));
+for(let y=.3;y<topY;y+=.3){const r=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.44,8),pipeM);r.rotation.z=Math.PI/2;r.position.set(0,y,LZ);lad.add(r)}
+
+for(let y=2.2;y<topY;y+=.9){const c=new THREE.Mesh(new THREE.TorusGeometry(.3,.015,6,24,Math.PI),pipeM);c.position.set(0,y,LZ+.0);c.rotation.z=Math.PI/2;c.rotation.y=0;c.rotation.x=0;lad.add(c)}
+reg('escada','Escada de acesso','Escada vertical com gaiola de proteção para chegar à altura do equador e às conexões superiores.',lad,V(0,0,2));
+
+// piso
+const ground=new THREE.Mesh(new THREE.CircleGeometry(9,64),new THREE.MeshStandardMaterial({color:0x8a979e,roughness:.95,transparent:true,opacity:.35}));
+ground.rotation.x=-Math.PI/2;scene.add(ground);
+const grid=new THREE.GridHelper(18,18,0x7a8a93,0x7a8a93);grid.material.transparent=true;grid.material.opacity=.25;scene.add(grid);
+
+// legendas de todos os componentes
+const S=(x,y,z)=>V(x,y,z).normalize().multiplyScalar(R).add(V(0,cy,0));
+const tagsEl=$('tags'),tagList=[];
+function tag(text,g,p,id){const a=new THREE.Object3D();a.position.copy(p);g.add(a);
+  const e=document.createElement('div');e.className='tag';e.textContent=text;if(id)e.onclick=()=>pick(id);tagsEl.appendChild(e);tagList.push({a,e})}
+tag('Casca esférica',shellG,S(-.9,.35,.9),'casca');
+tag('Solda equatorial',shellG,S(-1,0,-.3),'casca');
+tag('Solda meridiana',shellG,S(.75,-.65,0),'casca');
+tag('Placa de identificação',shellG,plate.position,'casca');
+tag('Coluna de apoio',sup,V(tops[0][0],legH*.5,tops[0][1]),'colunas');
+tag('Chapa de base',sup,V(tops[2][0],.12,tops[2][1]),'colunas');
+tag('Contraventamento',sup,V((tops[1][0]+tops[2][0])/2,legH*.5,(tops[1][1]+tops[2][1])/2),'colunas');
+tag('Escada com gaiola',lad,V(.25,2.6,LZ),'escada');
+tag('Boca de visita',parts.visita.g,V(0,R+.8,0),'visita');
+tag('Saída inferior',parts.saida.g,V(0,R+.65,0),'saida');
+tag('Bocal de entrada',parts.entrada.g,V(0,R+.9,0),'entrada');
+tag('Válvula de segurança',parts.valvula.g,V(0,R+1.2,0),'valvula');
+tag('Manômetro',parts.manometro.g,V(0,R+.8,0),'manometro');
+function updTags(){scene.updateMatrixWorld();camera.updateMatrixWorld();
+  const C=V(0,cy,0),cam=camera.position,w=V(0,0,0),o=V(0,0,0),d=V(0,0,0);
+  for(const {a,e} of tagList){a.getWorldPosition(w);d.copy(w).sub(cam);const L=d.length();d.divideScalar(L);
+    o.copy(cam).sub(C);const b=o.dot(d),c=o.dot(o)-(R-.05)*(R-.05),ds=b*b-c;
+    let hid=false;if(ds>0){const t=-b-Math.sqrt(ds);hid=t>0&&t<L-.05}
+    const p=w.clone().project(camera);
+    e.style.display=(hid||p.z>1)?'none':'block';
+    e.style.left=(p.x*.5+.5)*innerWidth+'px';e.style.top=(-p.y*.5+.5)*innerHeight+'px'}}
+
+// seleção por clique
+let sel=null,selId=null,down=null;
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+function pick(id){
+  if(sel){scene.remove(sel);sel=null}
+  if(!id||id===selId){selId=null;$('info').style.display='none';return}
+  selId=id;sel=new THREE.BoxHelper(parts[id].g,0x4cc2e0);scene.add(sel);
+  $('in').textContent=parts[id].name;$('id').textContent=parts[id].info;$('info').style.display='block'}
+canvas.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];controls.autoRotate=false;$('bRot').setAttribute('aria-pressed','false')});
+canvas.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;
+  mouse.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mouse,camera);
+  const h=ray.intersectObjects(vessel.children,true).find(i=>i.object.userData.part);pick(h?h.object.userData.part:null)});
+
+// controles
+const toggle=(id,fn)=>{const b=$(id);b.onclick=()=>{const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);fn(on)}};
+toggle('bRot',on=>controls.autoRotate=on);toggle('bTag',on=>tagsEl.style.display=on?'block':'none');toggle('bCut',on=>clip.constant=on?0:100);toggle('bWire',on=>{steel.wireframe=inner.wireframe=on});
+// nível de líquido
+const Rl=R-.1,liqPlane=new THREE.Plane(V(0,-1,0),0);
+const liq=new THREE.Mesh(new THREE.SphereGeometry(Rl,64,48),new THREE.MeshStandardMaterial({color:0x2a8fd8,transparent:true,opacity:.6,roughness:.2,side:THREE.DoubleSide,clippingPlanes:[liqPlane,clip]}));
+liq.position.y=cy;vessel.add(liq);
+const surf=new THREE.Mesh(new THREE.CircleGeometry(1,48),new THREE.MeshStandardMaterial({color:0x5bb6f0,transparent:true,opacity:.8,side:THREE.DoubleSide,clippingPlanes:[clip]}));
+surf.rotation.x=-Math.PI/2;vessel.add(surf);
+function setLevel(p){const h=p/100*2*Rl,y=cy-Rl+h,d=h-Rl;liqPlane.constant=y;surf.position.set(0,y,0);
+  surf.scale.setScalar(Math.max(.001,Math.sqrt(Math.max(0,Rl*Rl-d*d))));liq.visible=surf.visible=p>0;
+  $('lvv').textContent=p+'%';const f=x=>x.toFixed(1).replace('.',',');
+  $('vol').textContent=p>0?'Volume: '+f(Math.PI*h*h*(3*Rl-h)/3)+' de '+f(4/3*Math.PI*Rl**3)+' m³. Use Corte interno ou Transparente para ver.':''}
+setLevel(0);$('lv').oninput=e=>setLevel(+e.target.value);
+toggle('bTr',on=>{steel.transparent=on;steel.opacity=on?.22:1;steel.depthWrite=!on;steel.needsUpdate=true});
+
+// cotas
+let showDims=false;
+const dimsEl=document.createElement('div');dimsEl.id='tags2';document.body.appendChild(dimsEl);
+const dims=new THREE.Group();dims.visible=false;scene.add(dims);
+const dimM=new THREE.LineBasicMaterial({color:0xf0b429,depthTest:false}),dimList=[];
+function dline(p){const l=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(p),dimM);l.renderOrder=9;dims.add(l)}
+function dchip(text,p,k){const e=document.createElement('div');e.className='tag dim';e.textContent=text;dimsEl.appendChild(e);dimList.push({p,e,k})}
+function dim(a,b,t,text){dline([a,b,a.clone().sub(t),a.clone().add(t),b.clone().sub(t),b.clone().add(t)]);dchip(text,a.clone().add(b).multiplyScalar(.5))}
+dim(V(-R-1.6,0,0),V(-R-1.6,cy+R+.7,0),V(.25,0,0),'Altura total 9,1 m');
+dline([V(-R-1.6,cy+R+.7,0),V(-.7,cy+R+.7,0)]);
+dim(V(-R,cy,-R-1.6),V(R,cy,-R-1.6),V(0,.25,0),'Ø 6,0 m');
+dline([V(-R,cy,0),V(-R,cy,-R-1.6),V(R,cy,0),V(R,cy,-R-1.6)]);
+dim(V(R+1.6,0,0),V(R+1.6,legH,0),V(.25,0,0),'Pernas 2,4 m');
+toggle('bDim',on=>{showDims=on;dims.visible=on});
+function updDims(){ring.visible=clip.constant===0&&fluidOn;for(const {p,e,k} of dimList){const q=p.clone().project(camera);
+  e.style.display=((k==='c'?cmp.visible:k==='w'?ring.visible:showDims)&&q.z<1)?'block':'none';
+  e.style.left=(q.x*.5+.5)*innerWidth+'px';e.style.top=(-q.y*.5+.5)*innerHeight+'px'}}
+
+// comparação com vaso cilíndrico de mesmo volume
+const cmp=new THREE.Group();cmp.visible=false;cmp.position.x=7.5;scene.add(cmp);
+const cm=new THREE.MeshStandardMaterial({color:0xe0a030,metalness:.3,roughness:.5,transparent:true,opacity:.6,side:THREE.DoubleSide});
+const rc=2,Lc=6.33,sk=1,hd=new THREE.SphereGeometry(rc,48,24,0,Math.PI*2,0,Math.PI/2);
+const bodyC=new THREE.Mesh(new THREE.CylinderGeometry(rc,rc,Lc,48),cm);bodyC.position.y=sk+rc+Lc/2;
+const capT=new THREE.Mesh(hd,cm);capT.position.y=sk+rc+Lc;
+const capB=new THREE.Mesh(hd,cm);capB.rotation.x=Math.PI;capB.position.y=sk+rc;
+const skirt=new THREE.Mesh(new THREE.CylinderGeometry(rc,rc,sk,48,1,true),cm);skirt.position.y=sk/2;
+cmp.add(bodyC,capT,capB,skirt);
+dchip('Cilindro de mesmo volume: 11,3 m de altura',V(7.5,2*rc+Lc+sk+.6,0),'c');
+toggle('bCmp',on=>{cmp.visible=on;
+  if(on){$('in').textContent='Esfera × cilindro (113 m³)';
+    $('id').textContent='Com o mesmo volume, pressão e material, a esfera usa cerca de 19% menos chapa neste cálculo simplificado, porque a tensão se distribui igual em todas as direções. O cilindro (Ø 4 m) é mais simples de fabricar e ocupa menos área no chão.';
+    $('info').style.display='block';tw=[V(19,9,19),V(3,5,0)];controls.autoRotate=false;$('bRot').setAttribute('aria-pressed','false')}
+  else if(!selId)$('info').style.display='none'});
+
+// alívio de pressão pela válvula de segurança
+const NP=120,pPos=new Float32Array(NP*3),pVel=new Float32Array(NP*3),pLife=new Float32Array(NP);
+for(let i=0;i<NP;i++)pPos[i*3+1]=-99;
+const pGeo=new THREE.BufferGeometry();pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+const pts=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xffffff,size:.3,transparent:true,opacity:.55,depthWrite:false}));
+pts.frustumCulled=false;scene.add(pts);
+const vent=new THREE.Object3D();vent.position.y=R+1.55;parts.valvula.g.add(vent);
+const vbody=parts.valvula.g.children.find(c=>c.material===red),vbY=vbody.position.y;
+let auto=true,relieving=false,lift=0,last=0,pi=0,emitAcc=0;
+function setP(v){P=v;$('pr').value=v;$('prv').textContent=v.toFixed(2).replace('.',',')+' MPa'}
+function steam(dt){
+  const o=V(0,0,0),dir=V(0,1,0).applyQuaternion(parts.valvula.g.quaternion);dir.y+=.5;dir.normalize();vent.getWorldPosition(o);
+  if(relieving){emitAcc+=dt*70;while(emitAcc>=1){emitAcc--;const i=pi++%NP,s=3+Math.random()*2,r=()=>Math.random()-.5;
+    pPos.set([o.x,o.y,o.z],i*3);pVel.set([dir.x*s+r(),dir.y*s+r(),dir.z*s+r()],i*3);pLife[i]=1}}
+  for(let i=0;i<NP;i++)if(pLife[i]>0){const j=i*3;pLife[i]-=dt*.9;
+    pPos[j]+=pVel[j]*dt;pPos[j+1]+=pVel[j+1]*dt;pPos[j+2]+=pVel[j+2]*dt;pVel[j]*=.985;pVel[j+2]*=.985;pVel[j+1]-=dt*.5;
+    if(pLife[i]<=0)pPos[j+1]=-99}
+  pGeo.attributes.position.needsUpdate=true}
+function relief(t){
+  const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;
+  if(auto&&P>LIM+.001)relieving=true;
+  if(relieving){setP(Math.max(LIM-.12,P-dt*(.12+(P-LIM+.12)*.4)));if(P<=LIM-.12+.001)relieving=false}
+  lift+=((relieving?1:0)-lift)*Math.min(1,dt*10);vbody.position.y=vbY+.07*lift;
+  const m=relieving?'Válvula de segurança aberta: aliviando a pressão':(P>LIM?'Acima da pressão de projeto: válvula de segurança deve abrir':'');
+  if($('alert').textContent!==m)$('alert').textContent=m;
+  steam(dt)}
+toggle('bAuto',on=>{auto=on;if(!on)relieving=false});
+$('bTest').onclick=()=>{auto=true;$('bAuto').setAttribute('aria-pressed','true');setP(1.95);tw=cams[4];controls.autoRotate=false;$('bRot').setAttribute('aria-pressed','false')};
+
+const topUi=$('topUi'),pt=$('pt');
+
+// fluido, espessura e material
+const MT={cs:{n:'Aço-carbono SA-516 Gr.70',S:138,c:0xb9c4cb},ss316:{n:'Inox 316L (SA-240)',S:115,c:0xe3e8ea},ss304:{n:'Inox 304L (SA-240)',S:115,c:0xe3e8ea},ni9:{n:'Aço 9% níquel (SA-553 Tipo I)',S:160,c:0x9fb4c8},hic:{n:'Aço-carbono resistente a HIC (SA-516 Gr.70, NACE MR0175)',S:138,c:0xa9b8b0},lined:{n:'Aço-carbono SA-516 Gr.70 com revestimento de borracha ou PTFE',S:138,c:0xb9c4cb}};
+const FL=[
+['glp','Gases e vapores','GLP (propano/butano)',1.77,50,'cs',1.5,'Não corrosivo e comum em esferas. O aço-carbono é o mais barato e resiste bem a essa pressão.'],
+['nh3','Gases e vapores','Amônia',1.8,50,'cs',1.5,'O aço-carbono funciona, mas exige alívio de tensões após a solda e um pouco de água no produto para evitar trincas por corrosão sob tensão. Evite ligas de cobre.'],
+['cl2','Gases e vapores','Cloro (seco)',1.2,40,'cs',3,'Cloro seco ataca pouco o aço-carbono. Com umidade ele vira ácido e corrói rápido, então o produto precisa ficar seco.'],
+['h2','Gases e vapores','Hidrogênio',3,20,'ss316',0,'O hidrogênio fragiliza aços de alta resistência. O inox austenítico 316L resiste bem e dispensa sobremetal de corrosão.'],
+['h2s','Gases e vapores','Gás ácido (H2S)',1,50,'hic',6,'O H2S úmido causa trincas por hidrogênio. Usa-se aço resistente a HIC, tratado termicamente e com dureza limitada.'],
+['vap','Gases e vapores','Vapor saturado',2,215,'cs',3,'Até cerca de 350 °C o aço-carbono mantém a resistência. Acima disso passa-se a ligas de cromo e molibdênio.'],
+['gnl','Criogênicos','GNL (−162 °C)',.5,-162,'ni9',0,'O aço-carbono fica frágil nessa temperatura. O aço 9% níquel mantém a tenacidade e é o padrão para GNL.'],
+['lox','Criogênicos','Oxigênio líquido (−183 °C)',1,-183,'ss304',0,'Precisa de material tenaz no frio e que não reaja com o oxigênio. O inox 304L atende e é fácil de limpar.'],
+['h2o','Líquidos','Água',.6,40,'cs',3,'Pressão baixa e fluido pouco agressivo. Aço-carbono com pintura ou revestimento interno basta.'],
+['naf','Líquidos','Nafta / gasolina',.3,50,'cs',1.5,'Líquido inflamável e pouco corrosivo. O aço-carbono resolve; o cuidado é com aterramento e alívio de pressão.'],
+['h2so4','Líquidos','Ácido sulfúrico (98%)',.2,40,'cs',4,'Concentrado, ele forma uma película protetora no aço-carbono. Diluído ataca rápido, então não pode entrar água.'],
+['hcl','Líquidos','Ácido clorídrico',.3,30,'lined',3,'Corrói aço-carbono e inox. O aço fica como estrutura e a parede interna recebe revestimento de borracha ou PTFE.'],
+['naoh','Líquidos','Soda cáustica (50%)',.3,60,'cs',3,'O aço-carbono serve até cerca de 60 °C. Acima disso há trinca cáustica e é preciso alívio de tensões ou níquel.']
+].map(a=>({id:a[0],g:a[1],n:a[2],P:a[3],T:a[4],m:a[5],ca:a[6],why:a[7]}));
+let opts='<option value="">Escolha um fluido</option>';
+for(const g of[...new Set(FL.map(f=>f.g))])opts+='<optgroup label="'+g+'">'+FL.filter(f=>f.g===g).map(f=>'<option value="'+f.id+'">'+f.n+'</option>').join('')+'</optgroup>';
+const fcard=document.createElement('div');fcard.className='card';
+fcard.innerHTML=`<h1 style='font-size:14px'>Fluido e material</h1><label for='fl'><span>Fluido armazenado</span></label><select id='fl'>${opts}</select><label for='fp'><span>Pressão de projeto</span><b id='fpv'>-</b></label><input id='fp' type='range' min='0.1' max='4' step='0.05' value='1.7' disabled><div id='wbar'><i></i></div><dl id='fres'></dl><p id='fwhy' style='margin-top:6px'>Escolha um fluido para ver a espessura e o material. Valores aproximados, sem valor de projeto.</p>`;
+topUi.appendChild(fcard);
+const fmt=(x,d=1)=>x.toFixed(d).replace('.',',');
+let fluidOn=false,seen=false;
+const ring=new THREE.Mesh(new THREE.RingGeometry(R-.4,R,128),new THREE.MeshStandardMaterial({color:0xb9c4cb,side:THREE.DoubleSide,roughness:.5,metalness:.3}));
+ring.position.y=cy;ring.visible=false;vessel.add(ring);
+dchip('',V(0,cy,0),'w');const wE=dimList[dimList.length-1];
+function calc(){
+  const f=FL.find(x=>x.id===$('fl').value);fluidOn=!!f;
+  if(!f){$('fres').innerHTML='';$('fp').disabled=true;$('fpv').textContent='-';$('wbar').firstElementChild.style.width='0';liner.scale.setScalar(1);cold.set(0xb9c4cb);return}
+  const m=MT[f.m],p=+$('fp').value,tc=p*R*1000/(2*m.S-.2*p),ta=Math.ceil(tc+f.ca),tv=Math.min(.9,ta/100),mass=4*Math.PI*R*R*ta/1000*7.85;
+  const pw=['cs','hic','lined'].includes(f.m)&&ta>38;
+  $('fpv').textContent=fmt(p,2)+' MPa';
+  $('fres').innerHTML=`<dt>Temperatura</dt><dd>${f.T} °C</dd><dt>Material</dt><dd>${m.n}</dd><dt>Tensão admissível</dt><dd>${m.S} MPa</dd><dt>Espessura calculada</dt><dd>${fmt(tc)} mm</dd><dt>Sobremetal de corrosão</dt><dd>${fmt(f.ca)} mm</dd><dt>Espessura adotada</dt><dd><b>${ta} mm</b></dd><dt>Massa da casca</dt><dd>≈ ${fmt(mass)} t</dd>`;
+  $('fwhy').textContent=f.why+(pw?' Acima de 38 mm de parede, o aço-carbono exige alívio de tensões após a soldagem.':'')+' Fórmula de esfera (ASME VIII Div.1, E=1,0). Valores aproximados.';
+  $('wbar').firstElementChild.style.width=Math.min(100,ta)+'%';
+  liner.scale.setScalar((R-tv)/(R-.08));
+  ring.geometry.dispose();ring.geometry=new THREE.RingGeometry(R-tv,R,128);ring.material.color.setHex(m.c);cold.set(m.c);
+  wE.p.set((R-tv/2)*.707,cy+(R-tv/2)*.707,0);wE.e.textContent='Parede de '+ta+' mm (desenhada ×10)';
+  if(!seen){seen=true;if(clip.constant!==0)$('bCut').click();tw=[V(3,6.5,11),V(0,cy,0)];controls.autoRotate=false;$('bRot').setAttribute('aria-pressed','false')}}
+$('fl').onchange=()=>{const f=FL.find(x=>x.id===$('fl').value);if(f){$('fp').disabled=false;$('fp').value=f.P}calc()};
+$('fp').oninput=calc;
+const cards=[...topUi.children];
+function shut(c,s){c.classList.toggle('shut',s);const b=c.querySelector('.ca');b.textContent=s?'▼':'▲';b.setAttribute('aria-expanded',!s);
+  const any=cards.some(x=>!x.classList.contains('shut'));pt.setAttribute('aria-expanded',any);pt.textContent=any?'▲ Recolher tudo':'▼ Expandir tudo'}
+['Dados do vaso','Simulador e câmeras','Fluido e material'].forEach((t,i)=>{const c=cards[i],h=document.createElement('div');h.className='ch';
+  h.innerHTML='<span>'+t+'</span><button class="ca" aria-expanded="true" aria-label="Abrir ou fechar: '+t+'">▲</button>';
+  c.insertBefore(h,c.firstChild);h.querySelector('button').onclick=()=>shut(c,!c.classList.contains('shut'))});
+function setPanel(o){cards.forEach(c=>shut(c,!o))}
+setPanel(true);
+pt.onclick=()=>setPanel(pt.getAttribute('aria-expanded')!=='true');
+$('ic').onclick=()=>pick(null);
+if(matchMedia('(max-width:640px)').matches){setPanel(false);tagsEl.style.display='none';$('bTag').setAttribute('aria-pressed','false')}
+let P=.9,E=0;
+$('pr').oninput=e=>{P=+e.target.value;$('prv').textContent=P.toFixed(2).replace('.',',')+' MPa';
+  $('alert').textContent=P>LIM?'Acima da pressão de projeto: válvula de segurança deve abrir':''};
+$('ex').oninput=e=>{E=e.target.value/100;$('exv').textContent=e.target.value+'%'};
+const cams=[[V(11,6,11),V(0,4.4,0)],[V(.1,16,.1),V(0,5.4,0)],[V(6,1.4,6),V(0,1.4,0)],[V(-2.4,8.6,3.6),V(-1.4,7.4,1.6)],[V(-6.5,9.5,-7),V(-2.2,7.5,-1.9)]];
+let tw=null;document.querySelectorAll('[data-cam]').forEach(b=>b.onclick=()=>{tw=cams[b.dataset.cam];controls.autoRotate=false;$('bRot').setAttribute('aria-pressed','false')});
+function size(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.fov=camera.aspect<1?70:42;camera.updateProjectionMatrix()}
+addEventListener('resize',size);size();
+const cold=new THREE.Color(0xb9c4cb),hot=new THREE.Color(0xe0452e);
+(function loop(t){
+  const k=Math.min(P/2,1);steel.color.copy(cold).lerp(hot,Math.max(0,k*k*1.2));
+  vessel.position.x=P>LIM?Math.sin(t*.06)*.012*(P-LIM)*10:0;
+  if(needle)needle.rotation.y=-(-135+270*k)*Math.PI/180;
+  for(const id in parts){const p=parts[id];p.g.position.copy(p.base).addScaledVector(p.ex,E)}
+  if(sel)sel.update();
+  if(tw){camera.position.lerp(tw[0],.07);controls.target.lerp(tw[1],.07);if(camera.position.distanceTo(tw[0])<.05)tw=null}
+  controls.update();updTags();updDims();relief(t);renderer.render(scene,camera);requestAnimationFrame(loop)})(0);
+</script>
+</body>
+</html>
